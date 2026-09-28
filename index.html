@@ -88,6 +88,12 @@
   .upload input { display: none; }
   .preview { display: none; width: 100%; border-radius: 12px; margin-top: 12px; border: 1px solid var(--line); }
 
+  .select-wrap { position: relative; }
+  .select-wrap::after { content: "▾"; position: absolute; inset-inline-end: 14px; top: 50%; transform: translateY(-50%); color: var(--gold); pointer-events: none; }
+  select { width: 100%; padding: 13px 14px; padding-inline-end: 36px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); color: var(--text); font-size: 15px; font-family: inherit; outline: none; appearance: none; -webkit-appearance: none; }
+  select:disabled { color: var(--hint); }
+  select:focus { border-color: var(--gold); }
+  input[type=date] { width: 100%; padding: 13px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); color: var(--text); font-size: 16px; font-family: inherit; color-scheme: dark; min-height: 50px; }
   .pills { display: flex; gap: 10px; }
   .pill { flex: 1; padding: 12px 6px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); color: var(--text); font-size: 15px; font-weight: 600; cursor: pointer; font-family: inherit; }
   .pill.on { background: var(--gold-grad); color: #1a1718; border-color: transparent; }
@@ -206,6 +212,9 @@
       // Translation
       tr_received_q: "Have you received your translation?",
       rec_yes: "Yes, I have received it", rec_no: "No, I have not received it",
+      rec_returned: "I gave it back to you for correction",
+      tr_return_q: "When did you give it back to us for correction?", tr_return_sub: "Choose the date you gave us the translation.",
+      err_date: "Please choose a valid date (not in the future).",
       tr_issue_q: "What is the problem?",
       issue_name: "Name problem", issue_passport: "Passport number problem", issue_sid: "Student ID problem", issue_field: "Field of study problem",
       tr_correct_q: "What is the correct information?", tr_correct_sub: "Write it exactly as it should be.",
@@ -238,7 +247,8 @@
 
       // Info
       info_title: "Your information", info_sub: "So our team can find your file.",
-      name: "Full name (as in passport)", name3: "Full name (first, father's, grandfather's)", passport: "Passport number", field: "Field of study", field_ph: "Example: Medicine (MBBS)", level: "Level of study",
+      name: "Full name (as in passport)", name3: "Full name (first, father's, grandfather's)", passport: "Passport number", field: "Field of study", field_choose: "— Choose your field —", field_first: "Choose your level first", level: "Level of study",
+      semester: "Your semester (entry)", sem_2024: "September 2024", sem_2025: "September 2025",
       lvl_bsc: "BSc", lvl_msc: "MSc", lvl_phd: "PhD",
       dup_title: "You already have a request", dup_text: "A request for this section has already been submitted with this name and passport number. Please wait for our answer — you can follow it in \"My Requests\".",
       err_net: "Connection error. Please check your internet and try again.",
@@ -266,6 +276,9 @@
 
       tr_received_q: "هل استلمت ترجمتك؟",
       rec_yes: "نعم، استلمتها", rec_no: "لا، لم أستلمها",
+      rec_returned: "أعدتها لكم للتصحيح",
+      tr_return_q: "متى أعدت لنا الترجمة للتصحيح؟", tr_return_sub: "اختر التاريخ الذي سلّمتنا فيه الترجمة.",
+      err_date: "يرجى اختيار تاريخ صحيح (ليس في المستقبل).",
       tr_issue_q: "ما هي المشكلة؟",
       issue_name: "مشكلة في الاسم", issue_passport: "مشكلة في رقم الجواز", issue_sid: "مشكلة في الرقم الجامعي", issue_field: "مشكلة في التخصص",
       tr_correct_q: "ما هي المعلومة الصحيحة؟", tr_correct_sub: "اكتبها تماماً كما يجب أن تكون.",
@@ -295,7 +308,8 @@
       vs_reapply_sub: "أدخل معلوماتك كما في جواز السفر واضغط إرسال. سنقوم بالتقديم على الفيزا مرة أخرى.",
 
       info_title: "معلوماتك", info_sub: "حتى يتمكن فريقنا من إيجاد ملفك.",
-      name: "الاسم الكامل (كما في الجواز)", name3: "الاسم الثلاثي", passport: "رقم الجواز", field: "التخصص الدراسي", field_ph: "مثال: الطب العام", level: "المرحلة الدراسية",
+      name: "الاسم الكامل (كما في الجواز)", name3: "الاسم الثلاثي", passport: "رقم الجواز", field: "التخصص الدراسي", field_choose: "— اختر تخصصك —", field_first: "اختر المرحلة الدراسية أولاً", level: "المرحلة الدراسية",
+      semester: "فصل القبول", sem_2024: "أيلول (سبتمبر) ٢٠٢٤", sem_2025: "أيلول (سبتمبر) ٢٠٢٥",
       lvl_bsc: "بكالوريوس", lvl_msc: "ماجستير", lvl_phd: "دكتوراه",
       dup_title: "لديك طلب مسبق", dup_text: "تم إرسال طلب لهذا القسم مسبقاً بنفس الاسم ورقم الجواز. يرجى انتظار ردّنا — يمكنك متابعته من \"طلباتي\".",
       err_net: "خطأ في الاتصال. تحقق من الإنترنت وحاول مرة أخرى.",
@@ -315,13 +329,15 @@
   //  type: "choice" = buttons, "text" = write box, "commit" = letter + photo,
   //        "info" = student details then submit
   // =====================================================================
-  const INFO_STD = ["name", "passport", "field", "level"];
+  const INFO_STD = ["name", "passport", "semester", "level", "field"];
 
   const FLOW = {
     // ---------- 1. TRANSLATION ----------
     tr_received: { type: "choice", q: "tr_received_q", field: "received", options: [
       { key: "rec_yes", next: "tr_issue" },
-      { key: "rec_no",  next: "tr_time" } ] },
+      { key: "rec_no",  next: "tr_time" },
+      { key: "rec_returned", next: "tr_return" } ] },
+    tr_return: { type: "date", q: "tr_return_q", sub: "tr_return_sub", field: "returnedOn", next: "info" },
     tr_issue: { type: "choice", q: "tr_issue_q", field: "issue", options: [
       { key: "issue_name" }, { key: "issue_passport" }, { key: "issue_sid" }, { key: "issue_field" } ], next: "tr_correct" },
     tr_correct: { type: "text", q: "tr_correct_q", sub: "tr_correct_sub", field: "correctInfo", next: "info" },
@@ -343,7 +359,7 @@
       { key: "c_baghdad" }, { key: "c_najaf" }, { key: "c_karbala" }, { key: "c_basra" },
       { key: "c_erbil" }, { key: "c_sulay" }, { key: "c_other", next: "vs_other" } ], next: "info" },
     vs_other: { type: "text", q: "vs_other_q", sub: "vs_other_sub", field: "consulateOther", next: "info", short: true },
-    vs_reapply: { type: "info", q: "vs_reapply_title", sub: "vs_reapply_sub", fields: ["name3", "passport", "field", "level"] },
+    vs_reapply: { type: "info", q: "vs_reapply_title", sub: "vs_reapply_sub", fields: ["name3", "passport", "semester", "level", "field"] },
 
     // ---------- SHARED ----------
     info: { type: "info", q: "info_title", sub: "info_sub", fields: INFO_STD },
@@ -351,6 +367,131 @@
 
   const START = { translation: "tr_received", behestan: "bh_type", visa: "vs_status" };
   const CAT_KEY = { translation: "cat_translation", behestan: "cat_behestan", visa: "cat_visa" };
+  const SEMESTERS = [ { key: "sem_2024", value: "Sep 2024" }, { key: "sem_2025", value: "Sep 2025" } ];
+
+  // Fields of study per level (from FOS UUT spreadsheet). "only" = shown only for that semester.
+  const FIELDS = {
+ "BSc": [
+  {
+   "en": "Civil Engineering",
+   "ar": "هندسة مدنية"
+  },
+  {
+   "en": "Computer Engineering",
+   "ar": "هندسة الحاسبات"
+  }
+ ],
+ "MSc": [
+  {
+   "en": "Electrical Engineering – Communication Systems",
+   "ar": "الهندسة الكهربائية - أنظمة الاتصالات"
+  },
+  {
+   "en": "Electrical Engineering – Integrated Electronic Circuits",
+   "ar": "الهندسة الكهربائية - الدوائر الإلكترونية المتكاملة"
+  },
+  {
+   "en": "Electrical Engineering – Control",
+   "ar": "الهندسة الكهربائية - التحكم"
+  },
+  {
+   "en": "Electrical Engineering – Electric Energy Systems Management",
+   "ar": "الهندسة الكهربائية – إدارة أنظمة الطاقة الكهربائية"
+  },
+  {
+   "en": "Mechatronics Engineering (Electrical Engineering Dept.)",
+   "ar": "هندسة الميكاترونكس (قسم الهندسة الكهربائية)"
+  },
+  {
+   "en": "Information Technology Engineering – Network Systems",
+   "ar": "هندسة تكنولوجيا المعلومات - أنظمة الشبكات"
+  },
+  {
+   "en": "Information Technology Engineering – Information Systems Management",
+   "ar": "هندسة تكنولوجيا المعلومات - إدارة نظم المعلومات"
+  },
+  {
+   "en": "Applied Mathematics – Optimization",
+   "ar": "الرياضيات التطبيقية - الأمثلية"
+  },
+  {
+   "en": "Applied Mathematics – Numerical Analysis",
+   "ar": "الرياضيات التطبيقية - التحليل العددي"
+  },
+  {
+   "en": "Physics – Condensed Matter",
+   "ar": "الفيزياء - المادة المكثفة"
+  },
+  {
+   "en": "Chemistry - Catalyst Chemistry",
+   "ar": "كيمياء - كيمياء كاتاليست"
+  },
+  {
+   "en": "Photonics Engineering",
+   "ar": "هندسة الفوتونيات"
+  },
+  {
+   "en": "Mechanical Engineering – Energy Conversion",
+   "ar": "الهندسة الميكانيكية - تحويل الطاقة"
+  },
+  {
+   "en": "Mechanical Engineering – Applied Design",
+   "ar": "الهندسة الميكانيكية - التصميم التطبيقي"
+  },
+  {
+   "en": "Mechatronics Engineering (Mechanical Engineering Dept.)",
+   "ar": "هندسة الميكاترونكس (قسم الهندسة الميكانيكية)"
+  },
+  {
+   "en": "Mechanical Engineering – Manufacturing and Production",
+   "ar": "الهندسة الميكانيكية - التصنيع والإنتاج"
+  },
+  {
+   "en": "Chemical Engineering – Separation Processes",
+   "ar": "الهندسة الكيميائية - عمليات الفصل"
+  },
+  {
+   "en": "Chemical Engineering – Process Design",
+   "ar": "الهندسة الكيميائية - تصميم العمليات"
+  },
+  {
+   "en": "Polymer Engineering",
+   "ar": "هندسة البوليمرات"
+  },
+  {
+   "en": "Industrial Engineering – Macro Industrial Systems",
+   "ar": "الهندسة الصناعية - النظم الصناعية الكلية"
+  },
+  {
+   "en": "Industrial Engineering – Systems Optimization",
+   "ar": "الهندسة الصناعية - تحسين الأنظمة"
+  },
+  {
+   "en": "Civil Engineering – Earthquake Engineering",
+   "ar": "الهندسة المدنية - هندسة الزلازل"
+  },
+  {
+   "en": "Mining Engineering – Mineral Extraction",
+   "ar": "هندسة التعدين - استخراج المواد المعدنية"
+  },
+  {
+   "en": "Civil Engineering – Structural Engineering",
+   "ar": "الهندسة المدنية - الإنشاءات"
+  }
+ ],
+ "PhD": [
+  {
+   "en": "Mechanical Engineering – Energy Conversion",
+   "ar": "الهندسة الميكانيكية - تحويل الطاقة"
+  },
+  {
+   "en": "Chemical Engineering",
+   "ar": "الهندسة الكيميائية",
+   "only": "Sep 2025"
+  }
+ ]
+};
+
   const LEVELS = [ { key: "lvl_bsc", value: "BSc" }, { key: "lvl_msc", value: "MSc" }, { key: "lvl_phd", value: "PhD" } ];
 
   // =====================================================================
@@ -430,6 +571,14 @@
       h += `<button class="main-btn" onclick="nextText('${id}')">${t("next")}</button>`;
     }
 
+    if (n.type === "date") {
+      const today = new Date().toISOString().slice(0, 10);
+      h += `<h2>${t(n.q)}</h2><p class="sub">${t(n.sub)}</p>`;
+      h += `<input type="date" id="f_text" max="${today}" value="${esc(data[n.field] || "")}">`;
+      h += `<p class="error" id="err">${t("err_date")}</p>`;
+      h += `<button class="main-btn" onclick="nextDate('${id}')">${t("next")}</button>`;
+    }
+
     if (n.type === "commit") {
       h += `<h2>${t("commit_title")}</h2><p class="sub">${t("commit_sub")}</p>
         <div class="commit-box">${t("commit_text")}</div>
@@ -445,25 +594,48 @@
     if (n.type === "info") {
       h += `<h2>${t(n.q)}</h2><p class="sub">${t(n.sub)}</p>`;
       n.fields.forEach(f => {
-        if (f === "level") {
-          h += `<label>${t("level")}</label><div class="pills">` +
-            LEVELS.map(l => `<button type="button" class="pill ${data.level === l.value ? "on" : ""}" onclick="pickLevel(this,'${l.value}')">${t(l.key)}</button>`).join("") + `</div>`;
+        if (f === "semester" || f === "level") {
+          const list = f === "semester" ? SEMESTERS : LEVELS;
+          h += `<label>${t(f)}</label><div class="pills">` +
+            list.map(l => `<button type="button" class="pill ${data[f] === l.value ? "on" : ""}" onclick="pickPill(this,'${f}','${l.value}')">${t(l.key)}</button>`).join("") + `</div>`;
           return;
         }
-        const ph = f === "field" ? t("field_ph") : "";
-        h += `<label>${t(f)}</label><input type="text" id="f_${f}" value="${esc(data[f] || prefill(f))}" placeholder="${esc(ph)}">`;
+        if (f === "field") {
+          h += `<label>${t("field")}</label><div class="select-wrap"><select id="f_field"></select></div>`;
+          return;
+        }
+        h += `<label>${t(f)}</label><input type="text" id="f_${f}" value="${esc(data[f] || prefill(f))}">`;
       });
       h += `<p class="error" id="err">${t("err_fill")}</p>`;
       h += `<button class="main-btn" id="sendBtn" onclick="submitInfo('${id}')">${t("send")}</button>`;
     }
 
     el.innerHTML = h;
+    if (n.type === "info" && n.fields.includes("field")) updateFieldSelect();
   }
 
-  function pickLevel(btn, v) {
-    data.level = v;
+  // Fill the field-of-study list according to chosen level (+ semester)
+  function availableFields() {
+    return (FIELDS[data.level] || []).filter(x => !x.only || x.only === data.semester);
+  }
+  function updateFieldSelect() {
+    const sel = document.getElementById("f_field"); if (!sel) return;
+    if (!data.level) {
+      sel.innerHTML = `<option value="">${t("field_first")}</option>`; sel.disabled = true; return;
+    }
+    const list = availableFields();
+    if (!list.some(x => x.en === data.field)) data.field = "";
+    sel.disabled = false;
+    sel.innerHTML = `<option value="">${t("field_choose")}</option>` +
+      list.map(x => `<option value="${esc(x.en)}" ${x.en === data.field ? "selected" : ""}>${esc(x[lang] || x.en)}</option>`).join("");
+    sel.onchange = () => { data.field = sel.value; };
+  }
+
+  function pickPill(btn, f, v) {
+    data[f] = v;
     btn.parentNode.querySelectorAll(".pill").forEach(b => b.classList.remove("on"));
     btn.classList.add("on");
+    updateFieldSelect();
   }
   function prefill(f) {
     if ((f === "name" || f === "name3") && user) return [user.first_name, user.last_name].filter(Boolean).join(" ");
@@ -482,6 +654,13 @@
   function nextText(id) {
     const n = FLOW[id], v = document.getElementById("f_text").value.trim();
     if (!v) return showErr();
+    data[n.field] = v;
+    go(n.next);
+  }
+  function nextDate(id) {
+    const n = FLOW[id], v = document.getElementById("f_text").value;
+    const today = new Date().toISOString().slice(0, 10);
+    if (!v || v > today) return showErr();
     data[n.field] = v;
     go(n.next);
   }
@@ -532,7 +711,7 @@
   async function submitInfo(id) {
     const n = FLOW[id];
     for (const f of n.fields) {
-      if (f === "level") { if (!data.level) return showErr(); continue; }
+      if (f === "level" || f === "semester" || f === "field") { if (!data[f]) return showErr(); continue; }
       const v = document.getElementById("f_" + f).value.trim();
       if (!v) return showErr();
       data[f] = v;
@@ -652,7 +831,7 @@
   }
   document.getElementById("langBtn").onclick = () => {
     // keep what the student already typed before re-drawing
-    document.querySelectorAll("#step input[id^=f_], #step textarea").forEach(i => {
+    document.querySelectorAll("#step input[id^=f_], #step textarea, #step select").forEach(i => {
       const f = i.id === "f_text" ? FLOW[current.node].field : i.id.slice(2);
       if (i.value.trim()) data[f] = i.value;
     });
