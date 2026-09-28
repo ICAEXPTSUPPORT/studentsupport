@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Student Support</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+  :root {
+    --bg: var(--tg-theme-bg-color, #ffffff);
+    --text: var(--tg-theme-text-color, #1a1a1a);
+    --hint: var(--tg-theme-hint-color, #8a8a8a);
+    --accent: var(--tg-theme-button-color, #2a7de1);
+    --accent-text: var(--tg-theme-button-text-color, #ffffff);
+    --card: var(--tg-theme-secondary-bg-color, #f2f4f7);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, "Segoe UI", Tahoma, sans-serif;
+    background: var(--bg); color: var(--text);
+    padding: 16px; line-height: 1.5;
+  }
+  header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+  h1 { font-size: 20px; }
+  .lang-btn {
+    border: 1px solid var(--accent); color: var(--accent); background: transparent;
+    padding: 6px 12px; border-radius: 20px; font-size: 14px; cursor: pointer;
+  }
+  .sub { color: var(--hint); font-size: 14px; margin-bottom: 20px; }
+  label { display: block; font-size: 14px; font-weight: 600; margin: 14px 0 6px; }
+  input, select, textarea {
+    width: 100%; padding: 12px; border: none; border-radius: 10px;
+    background: var(--card); color: var(--text); font-size: 16px; font-family: inherit;
+  }
+  textarea { min-height: 120px; resize: vertical; }
+  .submit {
+    width: 100%; margin-top: 24px; padding: 14px; border: none; border-radius: 10px;
+    background: var(--accent); color: var(--accent-text); font-size: 16px; font-weight: 600; cursor: pointer;
+  }
+  .submit:disabled { opacity: 0.6; }
+  .error { color: #d93025; font-size: 13px; margin-top: 10px; display: none; }
+  #success { display: none; text-align: center; padding-top: 60px; }
+  #success .icon { font-size: 56px; }
+  #success h2 { margin: 12px 0 8px; }
+  #success .ticket { font-size: 22px; font-weight: 700; color: var(--accent); margin: 12px 0; }
+</style>
+</head>
+<body>
+
+<div id="formView">
+  <header>
+    <h1 data-t="title"></h1>
+    <button class="lang-btn" id="langBtn" type="button"></button>
+  </header>
+  <p class="sub" data-t="subtitle"></p>
+
+  <form id="ticketForm" novalidate>
+    <label data-t="name"></label>
+    <input id="name" type="text" required>
+
+    <label data-t="passport"></label>
+    <input id="passport" type="text" required>
+
+    <label data-t="university"></label>
+    <select id="university" required>
+      <option value="" data-t="choose"></option>
+      <option value="UUT" data-t="uni_uut"></option>
+      <option value="Other" data-t="uni_other"></option>
+    </select>
+
+    <label data-t="phone"></label>
+    <input id="phone" type="tel" placeholder="+964..." required>
+
+    <label data-t="category"></label>
+    <select id="category" required>
+      <option value="" data-t="choose"></option>
+      <option value="Registration" data-t="cat_reg"></option>
+      <option value="Visa" data-t="cat_visa"></option>
+      <option value="Residence Permit" data-t="cat_res"></option>
+      <option value="Fees / Payment" data-t="cat_fees"></option>
+      <option value="Accommodation" data-t="cat_acc"></option>
+      <option value="Other" data-t="cat_other"></option>
+    </select>
+
+    <label data-t="description"></label>
+    <textarea id="description" required></textarea>
+
+    <p class="error" id="error" data-t="fill_all"></p>
+    <button class="submit" id="submitBtn" type="submit" data-t="submit"></button>
+  </form>
+</div>
+
+<div id="success">
+  <div class="icon">✅</div>
+  <h2 data-t="sent_title"></h2>
+  <p data-t="sent_text"></p>
+  <p class="ticket" id="ticketId"></p>
+  <button class="submit" id="closeBtn" type="button" data-t="close"></button>
+</div>
+
+<script>
+  // ===== SETTINGS =====
+  // Leave empty for now. In the last step we'll paste the Google Sheet link here.
+  const SCRIPT_URL = "";
+
+  // ===== TEXTS (English + Arabic) =====
+  const T = {
+    en: {
+      title: "Student Support", subtitle: "Tell us your problem and our team will follow up with you.",
+      name: "Full name", passport: "Passport number", university: "University", phone: "Phone / WhatsApp",
+      category: "Problem type", description: "Describe your problem", choose: "— Choose —",
+      uni_uut: "Urmia University of Technology", uni_other: "Other",
+      cat_reg: "Registration", cat_visa: "Visa", cat_res: "Residence permit",
+      cat_fees: "Fees / Payment", cat_acc: "Accommodation", cat_other: "Other",
+      submit: "Send", sending: "Sending...", fill_all: "Please fill in all fields.",
+      sent_title: "Received!", sent_text: "Your ticket number is:", close: "Close", lang: "العربية"
+    },
+    ar: {
+      title: "دعم الطلاب", subtitle: "أخبرنا بمشكلتك وسيتابعها فريقنا معك.",
+      name: "الاسم الكامل", passport: "رقم جواز السفر", university: "الجامعة", phone: "الهاتف / واتساب",
+      category: "نوع المشكلة", description: "اشرح مشكلتك", choose: "— اختر —",
+      uni_uut: "جامعة أرومية الصناعية", uni_other: "أخرى",
+      cat_reg: "التسجيل", cat_visa: "الفيزا", cat_res: "الإقامة",
+      cat_fees: "الرسوم / الدفع", cat_acc: "السكن", cat_other: "أخرى",
+      submit: "إرسال", sending: "جارٍ الإرسال...", fill_all: "يرجى ملء جميع الحقول.",
+      sent_title: "تم الاستلام!", sent_text: "رقم تذكرتك هو:", close: "إغلاق", lang: "English"
+    }
+  };
+
+  const tg = window.Telegram ? window.Telegram.WebApp : null;
+  if (tg) { tg.ready(); tg.expand(); }
+  const user = tg && tg.initDataUnsafe ? tg.initDataUnsafe.user : null;
+
+  let lang = (user && user.language_code === "ar") ? "ar" : "en";
+
+  function applyLang() {
+    document.documentElement.lang = lang;
+    document.documentElement.dir = lang === "ar" ? "rtl" : "ltr";
+    document.querySelectorAll("[data-t]").forEach(el => { el.textContent = T[lang][el.dataset.t]; });
+    document.getElementById("langBtn").textContent = T[lang].lang;
+  }
+  document.getElementById("langBtn").onclick = () => { lang = lang === "en" ? "ar" : "en"; applyLang(); };
+  applyLang();
+
+  // Prefill name from Telegram
+  if (user) {
+    document.getElementById("name").value = [user.first_name, user.last_name].filter(Boolean).join(" ");
+  }
+
+  function makeTicketId() {
+    const d = new Date();
+    const date = d.getFullYear().toString().slice(2) + String(d.getMonth() + 1).padStart(2, "0") + String(d.getDate()).padStart(2, "0");
+    return "T" + date + "-" + Math.floor(1000 + Math.random() * 9000);
+  }
+
+  document.getElementById("ticketForm").onsubmit = async (e) => {
+    e.preventDefault();
+    const ids = ["name", "passport", "university", "phone", "category", "description"];
+    const data = {};
+    for (const id of ids) {
+      data[id] = document.getElementById(id).value.trim();
+      if (!data[id]) { document.getElementById("error").style.display = "block"; return; }
+    }
+    document.getElementById("error").style.display = "none";
+
+    data.ticketId = makeTicketId();
+    data.telegramId = user ? user.id : "";
+    data.username = user && user.username ? user.username : "";
+    data.lang = lang;
+
+    const btn = document.getElementById("submitBtn");
+    btn.disabled = true; btn.textContent = T[lang].sending;
+
+    try {
+      if (SCRIPT_URL) {
+        await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify(data) });
+      }
+      document.getElementById("formView").style.display = "none";
+      document.getElementById("success").style.display = "block";
+      document.getElementById("ticketId").textContent = data.ticketId;
+      if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred("success");
+    } catch (err) {
+      alert("Error. Please try again.");
+      btn.disabled = false; btn.textContent = T[lang].submit;
+    }
+  };
+
+  document.getElementById("closeBtn").onclick = () => { if (tg) tg.close(); };
+</script>
+</body>
+</html>
