@@ -124,6 +124,11 @@
   /* ===== STAFF ===== */
   .staff-link { display: block; margin: 18px auto 0; background: none; border: none; color: var(--hint); font-size: 13px; cursor: pointer; font-family: inherit; }
   input[type=password] { width: 100%; padding: 13px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); color: var(--text); font-size: 16px; font-family: inherit; outline: none; }
+  .pw-wrap { position: relative; }
+  .pw-wrap input { padding-inline-end: 70px; }
+  .pw-eye { position: absolute; top: 50%; right: 8px; transform: translateY(-50%); background: none; border: none; color: var(--gold-light); font-size: 13px; cursor: pointer; font-family: inherit; padding: 6px; }
+  .srv { text-align: center; font-size: 12.5px; color: var(--hint); margin-top: 14px; }
+  .srv.bad { color: var(--danger); }
   .staff-head { display: flex; align-items: center; gap: 8px; margin: 4px 0 14px; }
   .staff-head > div { flex: 1; min-width: 0; }
   .mini-btn { border: 1px solid var(--gold); color: var(--gold-light); background: transparent; border-radius: 10px; padding: 7px 12px; font-size: 14px; cursor: pointer; font-family: inherit; white-space: nowrap; }
@@ -137,7 +142,7 @@
   .kv dt { color: var(--hint); }
   .kv dd { margin: 0; word-break: break-word; }
   .photo-box img { width: 100%; border-radius: 12px; margin-top: 10px; border: 1px solid var(--line); }
-  .toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: var(--gold-grad); color: #1a1718; font-weight: 700; padding: 10px 18px; border-radius: 12px; z-index: 50; box-shadow: 0 8px 24px rgba(0,0,0,.4); display: none; }
+  .toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: var(--gold-grad); color: #1a1718; font-weight: 700; padding: 10px 18px; border-radius: 12px; z-index: 50; box-shadow: 0 8px 24px rgba(0,0,0,.4); display: none; white-space: nowrap; max-width: 92vw; overflow: hidden; text-overflow: ellipsis; }
 
   /* =====================================================================
      SEASONS — clipart + motion (changes automatically by date)
@@ -258,9 +263,13 @@
     <label data-t="username"></label>
     <input type="text" id="stUser" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false" dir="ltr">
     <label data-t="password"></label>
-    <input type="password" id="stPass" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false" dir="ltr">
+    <div class="pw-wrap">
+      <input type="password" id="stPass" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false" dir="ltr">
+      <button type="button" class="pw-eye" id="pwEye" onclick="togglePw()"></button>
+    </div>
     <p class="error" id="stErr"></p>
     <button class="main-btn" id="stLoginBtn" onclick="staffLogin()" data-t="login"></button>
+    <p class="srv" id="srvStatus"></p>
   </section>
 
   <!-- ============ STAFF: MY LIST ============ -->
@@ -297,6 +306,23 @@
   // =====================================================================
   const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxgskH9wnHKxEJeFQ4JT64IaSlDT0ZyV706rDu5zo4suRI5V9HiLN6iq-yDsbK-xCVp1A/exec"; // Google Sheet link goes here in the final step
   const LOGO = document.querySelector(".topbar img").src;
+  const SERVER_MIN = 7;   // this app needs script version 7 or newer
+
+  // One way to talk to the script. Refuses replies from an old script version.
+  async function api(body) {
+    let res, out;
+    try { res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify(body) }); }
+    catch (e) { throw new Error("NETWORK"); }
+    try { out = await res.json(); } catch (e) { throw new Error("OLD_SERVER"); }
+    if (typeof out.v !== "number" || out.v < SERVER_MIN) throw new Error("OLD_SERVER");
+    return out;
+  }
+  function errText(e) {
+    const m = e && e.message;
+    if (m === "OLD_SERVER") return t("err_old_server");
+    if (m === "NETWORK") return t("err_net");
+    return t("err_net");
+  }
 
   // =====================================================================
   //  TEXTS  (English + Arabic) — edit wording here
@@ -374,7 +400,10 @@
       reply: "Reply:", no_requests: "You haven't submitted any requests yet.",
       staff_login: "Staff login", staff_title: "Staff login", staff_sub: "For ICA admins only.",
       username: "Username", password: "Password", login: "Log in", logout: "Log out",
-      err_wrong: "Wrong username or password.", err_no_user: "This username doesn't exist.", err_wrong_password: "Wrong password.", err_inactive: "This account is paused.", err_locked: "Too many wrong tries. Try again in 15 minutes.", err_login_fill: "Enter your username and password.",
+      err_wrong: "Wrong username or password.", err_no_user: "This username doesn't exist.", err_wrong_password: "Wrong password.", err_inactive: "This account is paused.",
+      err_old_server: "The app is connected to an OLD version of the script. In Apps Script: Deploy → Manage deployments → ✏️ → Version: New version → Deploy.",
+      srv_checking: "Checking server…", srv_ok: "Server connected ✓", srv_bad: "⚠️ Server problem",
+      show_pw: "Show", hide_pw: "Hide", err_locked: "Too many wrong tries. Try again in 15 minutes.", err_login_fill: "Enter your username and password.",
       tab_wait: "Waiting", tab_progress: "In progress", tab_solved: "Solved", tab_all: "All",
       search_ph: "Search name, passport, ticket…", st_empty: "Nothing here.", loading: "Loading…",
       k_ticket: "Ticket", k_kind: "Kind", k_date: "Submitted", k_name: "Full name", k_passport: "Passport", k_studentId: "Student ID",
@@ -450,7 +479,10 @@
       reply: "الرد:", no_requests: "لم ترسل أي طلب بعد.",
       staff_login: "دخول الموظفين", staff_title: "دخول الموظفين", staff_sub: "خاص بمسؤولي ICA فقط.",
       username: "اسم المستخدم", password: "كلمة المرور", login: "دخول", logout: "خروج",
-      err_wrong: "اسم المستخدم أو كلمة المرور غير صحيحة.", err_no_user: "اسم المستخدم غير موجود.", err_wrong_password: "كلمة المرور غير صحيحة.", err_inactive: "هذا الحساب موقوف.", err_locked: "محاولات خاطئة كثيرة. حاول بعد ١٥ دقيقة.", err_login_fill: "أدخل اسم المستخدم وكلمة المرور.",
+      err_wrong: "اسم المستخدم أو كلمة المرور غير صحيحة.", err_no_user: "اسم المستخدم غير موجود.", err_wrong_password: "كلمة المرور غير صحيحة.", err_inactive: "هذا الحساب موقوف.",
+      err_old_server: "التطبيق متصل بنسخة قديمة من السكربت. في Apps Script: Deploy ← Manage deployments ← ✏️ ← New version ← Deploy.",
+      srv_checking: "جارٍ فحص الخادم…", srv_ok: "الخادم متصل ✓", srv_bad: "⚠️ مشكلة في الخادم",
+      show_pw: "إظهار", hide_pw: "إخفاء", err_locked: "محاولات خاطئة كثيرة. حاول بعد ١٥ دقيقة.", err_login_fill: "أدخل اسم المستخدم وكلمة المرور.",
       tab_wait: "بانتظار الرد", tab_progress: "قيد المتابعة", tab_solved: "تم الحل", tab_all: "الكل",
       search_ph: "ابحث بالاسم أو الجواز أو رقم الطلب…", st_empty: "لا يوجد شيء هنا.", loading: "جارٍ التحميل…",
       k_ticket: "رقم الطلب", k_kind: "النوع", k_date: "تاريخ الإرسال", k_name: "الاسم الكامل", k_passport: "الجواز", k_studentId: "الرقم الجامعي",
@@ -890,8 +922,7 @@
     try {
       // 2) real check on the server (Google Sheet) — covers every student
       if (SCRIPT_URL) {
-        const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify(data) });
-        const out = await res.json();
+        const out = await api(Object.assign({ action: "submit" }, data));
         if (out.duplicate) { btn.disabled = false; btn.textContent = t("send"); return showDuplicate(); }
         if (!out.ok) throw new Error(out.error || "server");
       }
@@ -905,7 +936,7 @@
       if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred("success");
     } catch (err) {
       btn.disabled = false; btn.textContent = t("send");
-      if (tg) tg.showAlert(t("err_net")); else alert(t("err_net"));
+      if (tg) tg.showAlert(errText(err)); else alert(errText(err));
     }
   }
 
@@ -952,8 +983,7 @@
   async function fetchServer() {
     if (!SCRIPT_URL || !tg || !tg.initData) return null;
     try {
-      const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify({ action: "list", initData: tg.initData }) });
-      const out = await res.json();
+      const out = await api({ action: "list", initData: tg.initData });
       return out.ok ? out.items : null;
     } catch (e) { return null; }
   }
@@ -1122,10 +1152,6 @@
   const STAFF_KEY = "ica_staff";
   let staff = { token: "", name: "", sections: "", items: [], filter: "Waiting", openId: null, newStatus: null };
 
-  async function api(body) {
-    const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify(body) });
-    return res.json();
-  }
   function toast(msg) {
     const el = document.getElementById("toast"); el.textContent = msg; el.style.display = "block";
     clearTimeout(toast._t); toast._t = setTimeout(() => el.style.display = "none", 2600);
@@ -1135,9 +1161,33 @@
 
   function openStaff() {
     loadStaffSaved();
-    stack = []; 
+    stack = [];
     if (staff.token) { showStaffList(); loadStaff(); }
-    else { current = { screen: "staffLogin" }; activate("staffLogin"); }
+    else showLogin();
+  }
+  function showLogin() {
+    current = { screen: "staffLogin" }; activate("staffLogin");
+    document.getElementById("pwEye").textContent = t("show_pw");
+    checkServer();
+  }
+  // Read-only check of the live script (GET) — shows if the deployed version is old
+  async function checkServer() {
+    const el = document.getElementById("srvStatus");
+    el.className = "srv"; el.textContent = t("srv_checking");
+    try {
+      const res = await fetch(SCRIPT_URL);
+      const out = await res.json();
+      if (typeof out.v !== "number" || out.v < SERVER_MIN) throw new Error("OLD_SERVER");
+      el.textContent = t("srv_ok") + " (v" + out.v + ")";
+    } catch (e) {
+      el.className = "srv bad";
+      el.textContent = t("srv_bad") + " — " + (e.message === "OLD_SERVER" || e instanceof SyntaxError ? t("err_old_server") : t("err_old_server"));
+    }
+  }
+  function togglePw() {
+    const i = document.getElementById("stPass"), show = i.type === "password";
+    i.type = show ? "text" : "password";
+    document.getElementById("pwEye").textContent = t(show ? "hide_pw" : "show_pw");
   }
 
   async function staffLogin() {
@@ -1154,13 +1204,14 @@
         err.textContent = known[out.error] ? t(known[out.error]) : "Server error: " + out.error;   // show real error, never hide it
         err.style.display = "block"; return;
       }
+      if (!out.token) throw new Error("OLD_SERVER");
       err.style.display = "none";
       document.getElementById("stPass").value = "";
       Object.assign(staff, { token: out.token, name: out.name, sections: out.sections });
       saveStaff();
       staff.filter = "Waiting";
       showStaffList(); loadStaff();
-    } catch (e) { err.textContent = t("err_net"); err.style.display = "block"; }
+    } catch (e) { err.textContent = errText(e); err.style.display = "block"; }
     finally { btn.disabled = false; btn.textContent = t("login"); }
   }
 
@@ -1169,7 +1220,7 @@
     try { localStorage.removeItem(STAFF_KEY); } catch (e) {}
     goHome();
   }
-  function sessionOut() { toast(t("session_out")); staff.token = ""; try { localStorage.removeItem(STAFF_KEY); } catch (e) {} current = { screen: "staffLogin" }; activate("staffLogin"); }
+  function sessionOut() { toast(t("session_out")); staff.token = ""; try { localStorage.removeItem(STAFF_KEY); } catch (e) {} showLogin(); }
 
   function showStaffList() {
     current = { screen: "staff" }; activate("staff");
@@ -1185,7 +1236,7 @@
       if (!out.ok) return out.error === "session" ? sessionOut() : toast(out.error);
       staff.items = out.items; staff.name = out.name; staff.sections = out.sections; saveStaff();
       if (current.screen === "staff") showStaffList();
-    } catch (e) { toast(t("err_net")); }
+    } catch (e) { toast(errText(e)); }
   }
 
   const ST_CLS = { "Waiting": "wait", "In progress": "progress", "Solved": "solved" };
@@ -1241,7 +1292,7 @@
       staff.photo = { id, src: out.image };
       document.getElementById("photoBox").innerHTML = `<img src="${out.image}" alt="">`;
       b.style.display = "none";
-    } catch (e) { toast(t("err_net")); b.disabled = false; b.textContent = t("show_photo"); }
+    } catch (e) { toast(errText(e)); b.disabled = false; b.textContent = t("show_photo"); }
   }
   async function sendAnswer() {
     const btn = document.getElementById("stSendBtn"); btn.disabled = true; btn.textContent = t("sending");
@@ -1253,12 +1304,13 @@
       if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred("success");
       toast(t("sent_ok"));
       showStaffList(); loadStaff();
-    } catch (e) { btn.disabled = false; btn.textContent = t("send_answer"); toast(t("err_net")); }
+    } catch (e) { btn.disabled = false; btn.textContent = t("send_answer"); toast(errText(e)); }
   }
 
   applySeason();
   applyLang();
   if (new URLSearchParams(location.search).get("staff") === "1") openStaff();
+  ["stUser", "stPass"].forEach(id => document.getElementById(id).addEventListener("keydown", e => { if (e.key === "Enter") staffLogin(); }));
 </script>
 </body>
 </html>
