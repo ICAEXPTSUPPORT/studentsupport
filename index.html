@@ -256,9 +256,9 @@
       <p class="sub" data-t="staff_sub"></p>
     </div>
     <label data-t="username"></label>
-    <input type="text" id="stUser" autocomplete="username" autocapitalize="off">
+    <input type="text" id="stUser" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false" dir="ltr">
     <label data-t="password"></label>
-    <input type="password" id="stPass" autocomplete="current-password">
+    <input type="password" id="stPass" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false" dir="ltr">
     <p class="error" id="stErr"></p>
     <button class="main-btn" id="stLoginBtn" onclick="staffLogin()" data-t="login"></button>
   </section>
@@ -374,7 +374,7 @@
       reply: "Reply:", no_requests: "You haven't submitted any requests yet.",
       staff_login: "Staff login", staff_title: "Staff login", staff_sub: "For ICA admins only.",
       username: "Username", password: "Password", login: "Log in", logout: "Log out",
-      err_wrong: "Wrong username or password.", err_locked: "Too many wrong tries. Try again in 15 minutes.", err_login_fill: "Enter your username and password.",
+      err_wrong: "Wrong username or password.", err_no_user: "This username doesn't exist.", err_wrong_password: "Wrong password.", err_inactive: "This account is paused.", err_locked: "Too many wrong tries. Try again in 15 minutes.", err_login_fill: "Enter your username and password.",
       tab_wait: "Waiting", tab_progress: "In progress", tab_solved: "Solved", tab_all: "All",
       search_ph: "Search name, passport, ticket…", st_empty: "Nothing here.", loading: "Loading…",
       k_ticket: "Ticket", k_kind: "Kind", k_date: "Submitted", k_name: "Full name", k_passport: "Passport", k_studentId: "Student ID",
@@ -450,7 +450,7 @@
       reply: "الرد:", no_requests: "لم ترسل أي طلب بعد.",
       staff_login: "دخول الموظفين", staff_title: "دخول الموظفين", staff_sub: "خاص بمسؤولي ICA فقط.",
       username: "اسم المستخدم", password: "كلمة المرور", login: "دخول", logout: "خروج",
-      err_wrong: "اسم المستخدم أو كلمة المرور غير صحيحة.", err_locked: "محاولات خاطئة كثيرة. حاول بعد ١٥ دقيقة.", err_login_fill: "أدخل اسم المستخدم وكلمة المرور.",
+      err_wrong: "اسم المستخدم أو كلمة المرور غير صحيحة.", err_no_user: "اسم المستخدم غير موجود.", err_wrong_password: "كلمة المرور غير صحيحة.", err_inactive: "هذا الحساب موقوف.", err_locked: "محاولات خاطئة كثيرة. حاول بعد ١٥ دقيقة.", err_login_fill: "أدخل اسم المستخدم وكلمة المرور.",
       tab_wait: "بانتظار الرد", tab_progress: "قيد المتابعة", tab_solved: "تم الحل", tab_all: "الكل",
       search_ph: "ابحث بالاسم أو الجواز أو رقم الطلب…", st_empty: "لا يوجد شيء هنا.", loading: "جارٍ التحميل…",
       k_ticket: "رقم الطلب", k_kind: "النوع", k_date: "تاريخ الإرسال", k_name: "الاسم الكامل", k_passport: "الجواز", k_studentId: "الرقم الجامعي",
@@ -1141,13 +1141,19 @@
   }
 
   async function staffLogin() {
-    const u = document.getElementById("stUser").value.trim(), p = document.getElementById("stPass").value;
+    const digits = s => s.replace(/[\u06F0-\u06F9]/g, c => c.charCodeAt(0) - 0x06F0).replace(/[\u0660-\u0669]/g, c => c.charCodeAt(0) - 0x0660);
+    const u = digits(document.getElementById("stUser").value).replace(/\s+/g, "").toLowerCase();
+    const p = digits(document.getElementById("stPass").value).trim();
     const err = document.getElementById("stErr");
     if (!u || !p) { err.textContent = t("err_login_fill"); err.style.display = "block"; return; }
     const btn = document.getElementById("stLoginBtn"); btn.disabled = true; btn.textContent = t("loading");
     try {
       const out = await api({ action: "login", username: u, password: p, initData: tg ? tg.initData : "" });
-      if (!out.ok) { err.textContent = t(out.error === "locked" ? "err_locked" : "err_wrong"); err.style.display = "block"; return; }
+      if (!out.ok) {
+        const known = { locked: "err_locked", no_user: "err_no_user", wrong_password: "err_wrong_password", inactive: "err_inactive" };
+        err.textContent = known[out.error] ? t(known[out.error]) : "Server error: " + out.error;   // show real error, never hide it
+        err.style.display = "block"; return;
+      }
       err.style.display = "none";
       document.getElementById("stPass").value = "";
       Object.assign(staff, { token: out.token, name: out.name, sections: out.sections });
