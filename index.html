@@ -88,6 +88,10 @@
   .upload input { display: none; }
   .preview { display: none; width: 100%; border-radius: 12px; margin-top: 12px; border: 1px solid var(--line); }
 
+  .pills { display: flex; gap: 10px; }
+  .pill { flex: 1; padding: 12px 6px; border: 1px solid var(--line); border-radius: 12px; background: var(--card); color: var(--text); font-size: 15px; font-weight: 600; cursor: pointer; font-family: inherit; }
+  .pill.on { background: var(--gold-grad); color: #1a1718; border-color: transparent; }
+  .check.warn { background: transparent; border: 2px solid var(--gold); color: var(--gold-light); }
   .note { background: rgba(212,167,58,.08); border: 1px solid rgba(212,167,58,.3); border-radius: 12px; padding: 12px 14px; font-size: 14px; margin-bottom: 8px; }
   .error { color: var(--danger); font-size: 13px; margin-top: 10px; display: none; }
 
@@ -150,6 +154,17 @@
       <p class="sub" style="margin-bottom:0" data-t="your_ticket"></p>
       <div class="ticket" id="ticketId"></div>
       <div class="note" style="margin-top:14px" data-t="done_wait"></div>
+      <button class="main-btn" onclick="openRequests(true)" data-t="my_requests"></button>
+      <button class="ghost-btn" onclick="goHome()" data-t="home"></button>
+    </div>
+  </section>
+
+  <!-- ============ ALREADY SUBMITTED ============ -->
+  <section class="screen" id="dup">
+    <div class="done-box">
+      <div class="check warn">!</div>
+      <h2 data-t="dup_title"></h2>
+      <p class="sub" data-t="dup_text"></p>
       <button class="main-btn" onclick="openRequests(true)" data-t="my_requests"></button>
       <button class="ghost-btn" onclick="goHome()" data-t="home"></button>
     </div>
@@ -223,7 +238,10 @@
 
       // Info
       info_title: "Your information", info_sub: "So our team can find your file.",
-      name: "Full name (as in passport)", name3: "Full name (first, father's, grandfather's)", passport: "Passport number", phone: "Phone / WhatsApp",
+      name: "Full name (as in passport)", name3: "Full name (first, father's, grandfather's)", passport: "Passport number", field: "Field of study", field_ph: "Example: Medicine (MBBS)", level: "Level of study",
+      lvl_bsc: "BSc", lvl_msc: "MSc", lvl_phd: "PhD",
+      dup_title: "You already have a request", dup_text: "A request for this section has already been submitted with this name and passport number. Please wait for our answer — you can follow it in \"My Requests\".",
+      err_net: "Connection error. Please check your internet and try again.",
       err_fill: "Please fill in all fields.",
 
       // Done / follow-up
@@ -277,7 +295,10 @@
       vs_reapply_sub: "أدخل معلوماتك كما في جواز السفر واضغط إرسال. سنقوم بالتقديم على الفيزا مرة أخرى.",
 
       info_title: "معلوماتك", info_sub: "حتى يتمكن فريقنا من إيجاد ملفك.",
-      name: "الاسم الكامل (كما في الجواز)", name3: "الاسم الثلاثي", passport: "رقم الجواز", phone: "الهاتف / واتساب",
+      name: "الاسم الكامل (كما في الجواز)", name3: "الاسم الثلاثي", passport: "رقم الجواز", field: "التخصص الدراسي", field_ph: "مثال: الطب العام", level: "المرحلة الدراسية",
+      lvl_bsc: "بكالوريوس", lvl_msc: "ماجستير", lvl_phd: "دكتوراه",
+      dup_title: "لديك طلب مسبق", dup_text: "تم إرسال طلب لهذا القسم مسبقاً بنفس الاسم ورقم الجواز. يرجى انتظار ردّنا — يمكنك متابعته من \"طلباتي\".",
+      err_net: "خطأ في الاتصال. تحقق من الإنترنت وحاول مرة أخرى.",
       err_fill: "يرجى ملء جميع الحقول.",
 
       done_title: "تم إرسال طلبك بنجاح",
@@ -294,7 +315,7 @@
   //  type: "choice" = buttons, "text" = write box, "commit" = letter + photo,
   //        "info" = student details then submit
   // =====================================================================
-  const INFO_STD = ["name", "passport", "phone"];
+  const INFO_STD = ["name", "passport", "field", "level"];
 
   const FLOW = {
     // ---------- 1. TRANSLATION ----------
@@ -322,7 +343,7 @@
       { key: "c_baghdad" }, { key: "c_najaf" }, { key: "c_karbala" }, { key: "c_basra" },
       { key: "c_erbil" }, { key: "c_sulay" }, { key: "c_other", next: "vs_other" } ], next: "info" },
     vs_other: { type: "text", q: "vs_other_q", sub: "vs_other_sub", field: "consulateOther", next: "info", short: true },
-    vs_reapply: { type: "info", q: "vs_reapply_title", sub: "vs_reapply_sub", fields: ["name3", "passport"] },
+    vs_reapply: { type: "info", q: "vs_reapply_title", sub: "vs_reapply_sub", fields: ["name3", "passport", "field", "level"] },
 
     // ---------- SHARED ----------
     info: { type: "info", q: "info_title", sub: "info_sub", fields: INFO_STD },
@@ -330,6 +351,7 @@
 
   const START = { translation: "tr_received", behestan: "bh_type", visa: "vs_status" };
   const CAT_KEY = { translation: "cat_translation", behestan: "cat_behestan", visa: "cat_visa" };
+  const LEVELS = [ { key: "lvl_bsc", value: "BSc" }, { key: "lvl_msc", value: "MSc" }, { key: "lvl_phd", value: "PhD" } ];
 
   // =====================================================================
   //  TELEGRAM
@@ -357,7 +379,7 @@
     document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
     document.getElementById(id).classList.add("active");
     window.scrollTo(0, 0);
-    if (tg && tg.BackButton) (id === "home" || id === "done") ? tg.BackButton.hide() : tg.BackButton.show();
+    if (tg && tg.BackButton) (id === "home" || id === "done" || id === "dup") ? tg.BackButton.hide() : tg.BackButton.show();
   }
   function go(node, push = true) {
     if (push) stack.push(current);
@@ -423,9 +445,13 @@
     if (n.type === "info") {
       h += `<h2>${t(n.q)}</h2><p class="sub">${t(n.sub)}</p>`;
       n.fields.forEach(f => {
-        const type = f === "phone" ? "tel" : "text";
-        const ph = f === "phone" ? "+964..." : "";
-        h += `<label>${t(f)}</label><input type="${type}" id="f_${f}" value="${esc(data[f] || prefill(f))}" placeholder="${ph}">`;
+        if (f === "level") {
+          h += `<label>${t("level")}</label><div class="pills">` +
+            LEVELS.map(l => `<button type="button" class="pill ${data.level === l.value ? "on" : ""}" onclick="pickLevel(this,'${l.value}')">${t(l.key)}</button>`).join("") + `</div>`;
+          return;
+        }
+        const ph = f === "field" ? t("field_ph") : "";
+        h += `<label>${t(f)}</label><input type="text" id="f_${f}" value="${esc(data[f] || prefill(f))}" placeholder="${esc(ph)}">`;
       });
       h += `<p class="error" id="err">${t("err_fill")}</p>`;
       h += `<button class="main-btn" id="sendBtn" onclick="submitInfo('${id}')">${t("send")}</button>`;
@@ -434,6 +460,11 @@
     el.innerHTML = h;
   }
 
+  function pickLevel(btn, v) {
+    data.level = v;
+    btn.parentNode.querySelectorAll(".pill").forEach(b => b.classList.remove("on"));
+    btn.classList.add("on");
+  }
   function prefill(f) {
     if ((f === "name" || f === "name3") && user) return [user.first_name, user.last_name].filter(Boolean).join(" ");
     return "";
@@ -501,13 +532,20 @@
   async function submitInfo(id) {
     const n = FLOW[id];
     for (const f of n.fields) {
+      if (f === "level") { if (!data.level) return showErr(); continue; }
       const v = document.getElementById("f_" + f).value.trim();
       if (!v) return showErr();
       data[f] = v;
     }
+    data.fullName = data.name || data.name3;
+    const nameKey = normName(data.fullName), passKey = normPass(data.passport);
+
+    // 1) quick check on this phone: same section + same name + same passport
+    const mine = await loadRequests();
+    if (mine.some(r => r.cat === data.category && r.nameKey === nameKey && r.passKey === passKey)) return showDuplicate();
     // keep only answers from the path the student actually took (ignore abandoned branches)
     const path = stack.filter(s => s.screen === "step").map(s => s.node).concat([id]);
-    const allowed = new Set(["category"].concat(n.fields));
+    const allowed = new Set(["category", "fullName"].concat(n.fields));
     path.forEach(p => { if (FLOW[p].field) allowed.add(FLOW[p].field); if (FLOW[p].type === "commit") allowed.add("commitImage"); });
     Object.keys(data).forEach(k => { if (!allowed.has(k)) delete data[k]; });
     Object.keys(lastKeys).forEach(k => { if (!allowed.has(k)) delete lastKeys[k]; });
@@ -521,10 +559,16 @@
     const btn = document.getElementById("sendBtn");
     btn.disabled = true; btn.textContent = t("sending");
     try {
-      if (SCRIPT_URL) await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify(data) });
+      // 2) real check on the server (Google Sheet) — covers every student
+      if (SCRIPT_URL) {
+        const res = await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify(data) });
+        const out = await res.json();
+        if (out.duplicate) { btn.disabled = false; btn.textContent = t("send"); return showDuplicate(); }
+        if (!out.ok) throw new Error(out.error || "server");
+      }
       await saveRequest({
         id: data.ticketId, cat: data.category, date: data.date,
-        keys: Object.values(lastKeys), status: "wait"
+        keys: Object.values(lastKeys), status: "wait", nameKey, passKey
       });
       document.getElementById("ticketId").textContent = data.ticketId;
       stack = []; current = { screen: "done" };
@@ -532,8 +576,17 @@
       if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred("success");
     } catch (err) {
       btn.disabled = false; btn.textContent = t("send");
-      if (tg) tg.showAlert("Error. Please try again."); else alert("Error. Please try again.");
+      if (tg) tg.showAlert(t("err_net")); else alert(t("err_net"));
     }
+  }
+
+  // Same name written with different spaces/capitals counts as the same name
+  function normName(s) { return String(s || "").toLowerCase().replace(/[\u064B-\u0652]/g, "").replace(/[أإآ]/g, "ا").replace(/\s+/g, " ").trim(); }
+  function normPass(s) { return String(s || "").toUpperCase().replace(/[^A-Z0-9]/g, ""); }
+  function showDuplicate() {
+    stack = []; current = { screen: "dup" };
+    activate("dup");
+    if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred("warning");
   }
 
   // =====================================================================
