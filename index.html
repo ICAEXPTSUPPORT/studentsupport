@@ -15,136 +15,330 @@
     --card: var(--tg-theme-secondary-bg-color, #f2f4f7);
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    font-family: -apple-system, "Segoe UI", Tahoma, sans-serif;
-    background: var(--bg); color: var(--text);
-    padding: 16px; line-height: 1.5;
-  }
-  header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+  body { font-family: -apple-system, "Segoe UI", Tahoma, sans-serif; background: var(--bg); color: var(--text); padding: 16px; line-height: 1.5; }
+  header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 18px; gap: 10px; }
   h1 { font-size: 20px; }
-  .lang-btn {
-    border: 1px solid var(--accent); color: var(--accent); background: transparent;
-    padding: 6px 12px; border-radius: 20px; font-size: 14px; cursor: pointer;
-  }
-  .sub { color: var(--hint); font-size: 14px; margin-bottom: 20px; }
+  h2 { font-size: 18px; margin-bottom: 6px; }
+  .lang-btn { border: 1px solid var(--accent); color: var(--accent); background: transparent; padding: 6px 12px; border-radius: 20px; font-size: 14px; cursor: pointer; white-space: nowrap; }
+  .sub { color: var(--hint); font-size: 14px; margin-bottom: 18px; }
+  .screen { display: none; animation: fade .2s ease; }
+  .screen.active { display: block; }
+  @keyframes fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+  /* Big home cards */
+  .big-card { display: flex; align-items: center; gap: 14px; width: 100%; padding: 18px 16px; margin-bottom: 12px; border: none; border-radius: 14px; background: var(--card); color: var(--text); font-size: 17px; font-weight: 600; cursor: pointer; text-align: start; font-family: inherit; }
+  .big-card .ico { font-size: 28px; }
+  .big-card .arrow { margin-inline-start: auto; color: var(--hint); font-size: 20px; }
+  [dir="rtl"] .big-card .arrow { transform: scaleX(-1); }
+
+  /* Option buttons */
+  .opt { display: block; width: 100%; padding: 15px 16px; margin-bottom: 10px; border: 2px solid transparent; border-radius: 12px; background: var(--card); color: var(--text); font-size: 16px; cursor: pointer; text-align: start; font-family: inherit; }
+  .opt:active { border-color: var(--accent); }
+
   label { display: block; font-size: 14px; font-weight: 600; margin: 14px 0 6px; }
-  input, select, textarea {
-    width: 100%; padding: 12px; border: none; border-radius: 10px;
-    background: var(--card); color: var(--text); font-size: 16px; font-family: inherit;
-  }
-  textarea { min-height: 120px; resize: vertical; }
-  .submit {
-    width: 100%; margin-top: 24px; padding: 14px; border: none; border-radius: 10px;
-    background: var(--accent); color: var(--accent-text); font-size: 16px; font-weight: 600; cursor: pointer;
-  }
-  .submit:disabled { opacity: 0.6; }
+  input[type=text], input[type=tel], textarea { width: 100%; padding: 12px; border: none; border-radius: 10px; background: var(--card); color: var(--text); font-size: 16px; font-family: inherit; }
+  textarea { min-height: 100px; resize: vertical; }
+
+  .main-btn { width: 100%; margin-top: 22px; padding: 14px; border: none; border-radius: 10px; background: var(--accent); color: var(--accent-text); font-size: 16px; font-weight: 600; cursor: pointer; font-family: inherit; }
+  .main-btn:disabled { opacity: .5; }
+  .back-link { background: none; border: none; color: var(--accent); font-size: 15px; margin-bottom: 14px; cursor: pointer; font-family: inherit; }
+
+  /* Commitment */
+  .commit-box { background: var(--card); border-inline-start: 4px solid var(--accent); padding: 14px; border-radius: 10px; font-size: 15px; margin: 10px 0; }
+  .copy-btn { background: transparent; border: 1px solid var(--accent); color: var(--accent); border-radius: 8px; padding: 8px 12px; font-size: 14px; cursor: pointer; font-family: inherit; }
+  .steps { margin: 16px 0 6px; padding-inline-start: 20px; font-size: 15px; }
+  .steps li { margin-bottom: 6px; }
+  .upload { display: block; text-align: center; padding: 24px 12px; border: 2px dashed var(--hint); border-radius: 12px; cursor: pointer; color: var(--hint); font-size: 15px; margin-top: 10px; }
+  .upload input { display: none; }
+  #preview { display: none; width: 100%; border-radius: 12px; margin-top: 12px; }
+
   .error { color: #d93025; font-size: 13px; margin-top: 10px; display: none; }
-  #success { display: none; text-align: center; padding-top: 60px; }
-  #success .icon { font-size: 56px; }
-  #success h2 { margin: 12px 0 8px; }
-  #success .ticket { font-size: 22px; font-weight: 700; color: var(--accent); margin: 12px 0; }
+  .center { text-align: center; padding-top: 50px; }
+  .center .icon { font-size: 56px; }
+  .ticket { font-size: 22px; font-weight: 700; color: var(--accent); margin: 12px 0; }
 </style>
 </head>
 <body>
 
-<div id="formView">
-  <header>
-    <h1 data-t="title"></h1>
-    <button class="lang-btn" id="langBtn" type="button"></button>
-  </header>
-  <p class="sub" data-t="subtitle"></p>
+<header>
+  <h1 data-t="title"></h1>
+  <button class="lang-btn" id="langBtn" type="button"></button>
+</header>
 
-  <form id="ticketForm" novalidate>
-    <label data-t="name"></label>
-    <input id="name" type="text" required>
+<!-- ============ HOME ============ -->
+<section class="screen active" id="home">
+  <p class="sub" data-t="home_sub"></p>
+  <button class="big-card" onclick="startCategory('Translation')"><span class="ico">📄</span><span data-t="cat_translation"></span><span class="arrow">›</span></button>
+  <button class="big-card" onclick="startCategory('Behestan')"><span class="ico">🎓</span><span data-t="cat_behestan"></span><span class="arrow">›</span></button>
+  <button class="big-card" onclick="startCategory('Visa')"><span class="ico">🛂</span><span data-t="cat_visa"></span><span class="arrow">›</span></button>
+</section>
 
-    <label data-t="passport"></label>
-    <input id="passport" type="text" required>
+<!-- ============ TRANSLATION: received? ============ -->
+<section class="screen" id="tr_received">
+  <button class="back-link" onclick="goBack()" data-t="back"></button>
+  <h2 data-t="tr_received_q"></h2>
+  <p class="sub" data-t="choose_one"></p>
+  <div id="opts_received"></div>
+</section>
 
-    <label data-t="university"></label>
-    <select id="university" required>
-      <option value="" data-t="choose"></option>
-      <option value="UUT" data-t="uni_uut"></option>
-      <option value="Other" data-t="uni_other"></option>
-    </select>
+<!-- ============ TRANSLATION: which problem ============ -->
+<section class="screen" id="tr_issue">
+  <button class="back-link" onclick="goBack()" data-t="back"></button>
+  <h2 data-t="tr_issue_q"></h2>
+  <p class="sub" data-t="choose_one"></p>
+  <div id="opts_issue"></div>
+</section>
 
-    <label data-t="phone"></label>
-    <input id="phone" type="tel" placeholder="+964..." required>
+<!-- ============ TRANSLATION: correct info ============ -->
+<section class="screen" id="tr_correct">
+  <button class="back-link" onclick="goBack()" data-t="back"></button>
+  <h2 data-t="tr_correct_q"></h2>
+  <p class="sub" data-t="tr_correct_sub"></p>
+  <textarea id="correctValue"></textarea>
+  <p class="error" id="err_correct" data-t="err_fill"></p>
+  <button class="main-btn" onclick="submitCorrect()" data-t="next"></button>
+</section>
 
-    <label data-t="category"></label>
-    <select id="category" required>
-      <option value="" data-t="choose"></option>
-      <option value="Registration" data-t="cat_reg"></option>
-      <option value="Visa" data-t="cat_visa"></option>
-      <option value="Residence Permit" data-t="cat_res"></option>
-      <option value="Fees / Payment" data-t="cat_fees"></option>
-      <option value="Accommodation" data-t="cat_acc"></option>
-      <option value="Other" data-t="cat_other"></option>
-    </select>
+<!-- ============ TRANSLATION: how long ============ -->
+<section class="screen" id="tr_time">
+  <button class="back-link" onclick="goBack()" data-t="back"></button>
+  <h2 data-t="tr_time_q"></h2>
+  <p class="sub" data-t="choose_one"></p>
+  <div id="opts_time"></div>
+</section>
 
-    <label data-t="description"></label>
-    <textarea id="description" required></textarea>
+<!-- ============ TRANSLATION: commitment ============ -->
+<section class="screen" id="tr_commit">
+  <button class="back-link" onclick="goBack()" data-t="back"></button>
+  <h2 data-t="commit_title"></h2>
+  <p class="sub" data-t="commit_sub"></p>
+  <div class="commit-box" id="commitText" data-t="commit_text"></div>
+  <button class="copy-btn" id="copyBtn" onclick="copyCommit()" data-t="copy"></button>
+  <ol class="steps">
+    <li data-t="step1"></li>
+    <li data-t="step2"></li>
+    <li data-t="step3"></li>
+  </ol>
+  <label class="upload" id="uploadBox">
+    <span data-t="upload"></span>
+    <input type="file" id="commitFile" accept="image/*">
+  </label>
+  <img id="preview" alt="">
+  <p class="error" id="err_commit" data-t="err_image"></p>
+  <button class="main-btn" onclick="submitCommit()" data-t="next"></button>
+</section>
 
-    <p class="error" id="error" data-t="fill_all"></p>
-    <button class="submit" id="submitBtn" type="submit" data-t="submit"></button>
-  </form>
-</div>
+<!-- ============ STUDENT INFO ============ -->
+<section class="screen" id="info">
+  <button class="back-link" onclick="goBack()" data-t="back"></button>
+  <h2 data-t="info_title"></h2>
+  <p class="sub" data-t="info_sub"></p>
+  <label data-t="name"></label>
+  <input type="text" id="name">
+  <label data-t="passport"></label>
+  <input type="text" id="passport">
+  <label data-t="phone"></label>
+  <input type="tel" id="phone" placeholder="+964...">
+  <p class="error" id="err_info" data-t="err_fill"></p>
+  <button class="main-btn" id="sendBtn" onclick="sendTicket()" data-t="send"></button>
+</section>
 
-<div id="success">
+<!-- ============ DONE ============ -->
+<section class="screen center" id="done">
   <div class="icon">✅</div>
-  <h2 data-t="sent_title"></h2>
-  <p data-t="sent_text"></p>
+  <h2 data-t="done_title"></h2>
+  <p data-t="done_text"></p>
   <p class="ticket" id="ticketId"></p>
-  <button class="submit" id="closeBtn" type="button" data-t="close"></button>
-</div>
+  <button class="main-btn" onclick="resetAll()" data-t="home"></button>
+</section>
+
+<!-- ============ COMING SOON ============ -->
+<section class="screen center" id="soon">
+  <div class="icon">🛠️</div>
+  <h2 data-t="soon_title"></h2>
+  <p class="sub" data-t="soon_text"></p>
+  <button class="main-btn" onclick="goBack()" data-t="back_home"></button>
+</section>
 
 <script>
   // ===== SETTINGS =====
-  // Leave empty for now. In the last step we'll paste the Google Sheet link here.
-  const SCRIPT_URL = "";
+  const SCRIPT_URL = ""; // Google Sheet link goes here in the final step
 
-  // ===== TEXTS (English + Arabic) =====
+  // ===== TEXTS =====
   const T = {
     en: {
-      title: "Student Support", subtitle: "Tell us your problem and our team will follow up with you.",
-      name: "Full name", passport: "Passport number", university: "University", phone: "Phone / WhatsApp",
-      category: "Problem type", description: "Describe your problem", choose: "— Choose —",
-      uni_uut: "Urmia University of Technology", uni_other: "Other",
-      cat_reg: "Registration", cat_visa: "Visa", cat_res: "Residence permit",
-      cat_fees: "Fees / Payment", cat_acc: "Accommodation", cat_other: "Other",
-      submit: "Send", sending: "Sending...", fill_all: "Please fill in all fields.",
-      sent_title: "Received!", sent_text: "Your ticket number is:", close: "Close", lang: "العربية"
+      title: "Student Support", lang: "العربية",
+      home_sub: "What problem do you have? Choose one:",
+      cat_translation: "Translation Problem", cat_behestan: "Behestan Problem", cat_visa: "Visa Problem",
+      back: "‹ Back", back_home: "Back", next: "Next", send: "Send", home: "Back to home",
+      choose_one: "Choose one:",
+      tr_received_q: "Have you received your translation?",
+      rec_yes: "✅ Yes, I have received it", rec_no: "❌ No, I have not received it",
+      tr_issue_q: "What is the problem?",
+      issue_name: "Name problem", issue_passport: "Passport number problem", issue_sid: "Student ID problem", issue_field: "Field of study problem",
+      tr_correct_q: "What is the correct information?",
+      tr_correct_sub: "Write exactly how it should be written.",
+      tr_time_q: "How long has passed since you applied for it?",
+      t1: "Less than 1 week", t2: "1 – 2 weeks", t3: "2 – 4 weeks", t4: "1 – 2 months", t5: "More than 2 months",
+      commit_title: "Letter of commitment",
+      commit_sub: "Write this text by hand on a paper:",
+      commit_text: "I have looked at all the files uploaded to the WhatsApp group and I haven't seen my name among the names of the students whose files came from Tehran. So if my file exists and I am mistaken, I commit to pay the service charge of the translation again.",
+      copy: "📋 Copy text", copied: "✔ Copied",
+      step1: "Write the text above on a paper by hand.",
+      step2: "Write today's date and sign it.",
+      step3: "Take a clear photo of it and upload it below.",
+      upload: "📷 Tap to upload the photo", change: "📷 Tap to change the photo",
+      info_title: "Your information", info_sub: "So our team can find your file.",
+      name: "Full name (as in passport)", passport: "Passport number", phone: "Phone / WhatsApp",
+      err_fill: "Please fill in all fields.", err_image: "Please upload the photo of your signed paper.",
+      sending: "Sending...",
+      done_title: "Received!", done_text: "Our team will follow up. Your ticket number is:",
+      soon_title: "Coming soon", soon_text: "This section is not ready yet."
     },
     ar: {
-      title: "دعم الطلاب", subtitle: "أخبرنا بمشكلتك وسيتابعها فريقنا معك.",
-      name: "الاسم الكامل", passport: "رقم جواز السفر", university: "الجامعة", phone: "الهاتف / واتساب",
-      category: "نوع المشكلة", description: "اشرح مشكلتك", choose: "— اختر —",
-      uni_uut: "جامعة أرومية الصناعية", uni_other: "أخرى",
-      cat_reg: "التسجيل", cat_visa: "الفيزا", cat_res: "الإقامة",
-      cat_fees: "الرسوم / الدفع", cat_acc: "السكن", cat_other: "أخرى",
-      submit: "إرسال", sending: "جارٍ الإرسال...", fill_all: "يرجى ملء جميع الحقول.",
-      sent_title: "تم الاستلام!", sent_text: "رقم تذكرتك هو:", close: "إغلاق", lang: "English"
+      title: "دعم الطلاب", lang: "English",
+      home_sub: "ما هي مشكلتك؟ اختر واحدة:",
+      cat_translation: "مشكلة الترجمة", cat_behestan: "مشكلة بهستان", cat_visa: "مشكلة الفيزا",
+      back: "› رجوع", back_home: "رجوع", next: "التالي", send: "إرسال", home: "العودة للرئيسية",
+      choose_one: "اختر واحدة:",
+      tr_received_q: "هل استلمت ترجمتك؟",
+      rec_yes: "✅ نعم، استلمتها", rec_no: "❌ لا، لم أستلمها",
+      tr_issue_q: "ما هي المشكلة؟",
+      issue_name: "مشكلة في الاسم", issue_passport: "مشكلة في رقم الجواز", issue_sid: "مشكلة في الرقم الجامعي", issue_field: "مشكلة في التخصص",
+      tr_correct_q: "ما هي المعلومة الصحيحة؟",
+      tr_correct_sub: "اكتبها تماماً كما يجب أن تُكتب.",
+      tr_time_q: "كم مضى من الوقت منذ أن قدّمت عليها؟",
+      t1: "أقل من أسبوع", t2: "١ – ٢ أسبوع", t3: "٢ – ٤ أسابيع", t4: "١ – ٢ شهر", t5: "أكثر من شهرين",
+      commit_title: "ورقة التعهد",
+      commit_sub: "اكتب هذا النص بخط يدك على ورقة:",
+      commit_text: "لقد اطلعت على جميع الملفات المرفوعة في مجموعة الواتساب ولم أجد اسمي بين أسماء الطلاب الذين وصلت ملفاتهم من طهران. لذلك إذا كان ملفي موجوداً وكنت مخطئاً، أتعهد بدفع رسوم خدمة الترجمة مرة أخرى.",
+      copy: "📋 نسخ النص", copied: "✔ تم النسخ",
+      step1: "اكتب النص أعلاه بخط يدك على ورقة.",
+      step2: "اكتب تاريخ اليوم ووقّع.",
+      step3: "التقط صورة واضحة وارفعها في الأسفل.",
+      upload: "📷 اضغط لرفع الصورة", change: "📷 اضغط لتغيير الصورة",
+      info_title: "معلوماتك", info_sub: "حتى يتمكن فريقنا من إيجاد ملفك.",
+      name: "الاسم الكامل (كما في الجواز)", passport: "رقم الجواز", phone: "الهاتف / واتساب",
+      err_fill: "يرجى ملء جميع الحقول.", err_image: "يرجى رفع صورة الورقة الموقّعة.",
+      sending: "جارٍ الإرسال...",
+      done_title: "تم الاستلام!", done_text: "سيتابع فريقنا طلبك. رقم تذكرتك هو:",
+      soon_title: "قريباً", soon_text: "هذا القسم غير جاهز بعد."
     }
   };
 
+  // ===== OPTION LISTS (edit these to change buttons) =====
+  const OPTIONS = {
+    received: [ { key: "rec_yes", value: "Received", next: "tr_issue" },
+                { key: "rec_no",  value: "Not received", next: "tr_time" } ],
+    issue: [ { key: "issue_name", value: "Name" }, { key: "issue_passport", value: "Passport number" },
+             { key: "issue_sid", value: "Student ID" }, { key: "issue_field", value: "Field of study" } ],
+    time: [ { key: "t1", value: "< 1 week" }, { key: "t2", value: "1-2 weeks" }, { key: "t3", value: "2-4 weeks" },
+            { key: "t4", value: "1-2 months" }, { key: "t5", value: "> 2 months" } ]
+  };
+
+  // ===== TELEGRAM =====
   const tg = window.Telegram ? window.Telegram.WebApp : null;
   if (tg) { tg.ready(); tg.expand(); }
   const user = tg && tg.initDataUnsafe ? tg.initDataUnsafe.user : null;
-
   let lang = (user && user.language_code === "ar") ? "ar" : "en";
+
+  // ===== STATE =====
+  let data = {};
+  let history = [];
+
+  function show(id, push = true) {
+    const current = document.querySelector(".screen.active");
+    if (push && current) history.push(current.id);
+    document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
+    document.getElementById(id).classList.add("active");
+    window.scrollTo(0, 0);
+    if (tg && tg.BackButton) {
+      (history.length && id !== "done") ? tg.BackButton.show() : tg.BackButton.hide();
+    }
+  }
+  function goBack() { if (history.length) show(history.pop(), false); }
+  if (tg && tg.BackButton) tg.BackButton.onClick(goBack);
+
+  function renderOptions(boxId, list, field, defaultNext) {
+    const box = document.getElementById(boxId);
+    box.innerHTML = "";
+    list.forEach(o => {
+      const b = document.createElement("button");
+      b.className = "opt"; b.textContent = T[lang][o.key];
+      b.onclick = () => { data[field] = o.value; show(o.next || defaultNext); };
+      box.appendChild(b);
+    });
+  }
+  function renderAllOptions() {
+    renderOptions("opts_received", OPTIONS.received, "received");
+    renderOptions("opts_issue", OPTIONS.issue, "issue", "tr_correct");
+    renderOptions("opts_time", OPTIONS.time, "waitTime", "tr_commit");
+  }
 
   function applyLang() {
     document.documentElement.lang = lang;
     document.documentElement.dir = lang === "ar" ? "rtl" : "ltr";
     document.querySelectorAll("[data-t]").forEach(el => { el.textContent = T[lang][el.dataset.t]; });
     document.getElementById("langBtn").textContent = T[lang].lang;
+    if (data.commitImage) document.querySelector("#uploadBox span").textContent = T[lang].change;
+    renderAllOptions();
   }
   document.getElementById("langBtn").onclick = () => { lang = lang === "en" ? "ar" : "en"; applyLang(); };
-  applyLang();
 
-  // Prefill name from Telegram
-  if (user) {
-    document.getElementById("name").value = [user.first_name, user.last_name].filter(Boolean).join(" ");
+  // ===== FLOW =====
+  function startCategory(cat) {
+    data = { category: cat };
+    if (cat === "Translation") show("tr_received");
+    else show("soon");
+  }
+
+  function submitCorrect() {
+    const v = document.getElementById("correctValue").value.trim();
+    if (!v) { document.getElementById("err_correct").style.display = "block"; return; }
+    document.getElementById("err_correct").style.display = "none";
+    data.correctValue = v;
+    show("info");
+  }
+
+  function copyCommit() {
+    const text = T[lang].commit_text;
+    const done = () => {
+      const b = document.getElementById("copyBtn");
+      b.textContent = T[lang].copied;
+      setTimeout(() => b.textContent = T[lang].copy, 2000);
+    };
+    if (navigator.clipboard) navigator.clipboard.writeText(text).then(done).catch(() => fallbackCopy(text, done));
+    else fallbackCopy(text, done);
+  }
+  function fallbackCopy(text, done) {
+    const t = document.createElement("textarea"); t.value = text; document.body.appendChild(t);
+    t.select(); document.execCommand("copy"); t.remove(); done();
+  }
+
+  // Shrink photo so it uploads fast
+  function compressImage(file) {
+    return new Promise(resolve => {
+      const img = new Image();
+      img.onload = () => {
+        const max = 1280; let w = img.width, h = img.height;
+        if (w > max || h > max) { const r = Math.min(max / w, max / h); w = Math.round(w * r); h = Math.round(h * r); }
+        const c = document.createElement("canvas"); c.width = w; c.height = h;
+        c.getContext("2d").drawImage(img, 0, 0, w, h);
+        resolve(c.toDataURL("image/jpeg", 0.8));
+      };
+      img.src = URL.createObjectURL(file);
+    });
+  }
+  document.getElementById("commitFile").onchange = async (e) => {
+    const file = e.target.files[0]; if (!file) return;
+    data.commitImage = await compressImage(file);
+    const p = document.getElementById("preview"); p.src = data.commitImage; p.style.display = "block";
+    document.querySelector("#uploadBox span").textContent = T[lang].change;
+    document.getElementById("err_commit").style.display = "none";
+  };
+  function submitCommit() {
+    if (!data.commitImage) { document.getElementById("err_commit").style.display = "block"; return; }
+    show("info");
   }
 
   function makeTicketId() {
@@ -153,39 +347,44 @@
     return "T" + date + "-" + Math.floor(1000 + Math.random() * 9000);
   }
 
-  document.getElementById("ticketForm").onsubmit = async (e) => {
-    e.preventDefault();
-    const ids = ["name", "passport", "university", "phone", "category", "description"];
-    const data = {};
-    for (const id of ids) {
-      data[id] = document.getElementById(id).value.trim();
-      if (!data[id]) { document.getElementById("error").style.display = "block"; return; }
+  async function sendTicket() {
+    const fields = ["name", "passport", "phone"];
+    for (const f of fields) {
+      data[f] = document.getElementById(f).value.trim();
+      if (!data[f]) { document.getElementById("err_info").style.display = "block"; return; }
     }
-    document.getElementById("error").style.display = "none";
-
+    document.getElementById("err_info").style.display = "none";
     data.ticketId = makeTicketId();
     data.telegramId = user ? user.id : "";
     data.username = user && user.username ? user.username : "";
     data.lang = lang;
 
-    const btn = document.getElementById("submitBtn");
+    const btn = document.getElementById("sendBtn");
     btn.disabled = true; btn.textContent = T[lang].sending;
-
     try {
-      if (SCRIPT_URL) {
-        await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify(data) });
-      }
-      document.getElementById("formView").style.display = "none";
-      document.getElementById("success").style.display = "block";
+      if (SCRIPT_URL) await fetch(SCRIPT_URL, { method: "POST", body: JSON.stringify(data) });
       document.getElementById("ticketId").textContent = data.ticketId;
+      history = [];
+      show("done", false);
       if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred("success");
     } catch (err) {
       alert("Error. Please try again.");
-      btn.disabled = false; btn.textContent = T[lang].submit;
     }
-  };
+    btn.disabled = false; btn.textContent = T[lang].send;
+  }
 
-  document.getElementById("closeBtn").onclick = () => { if (tg) tg.close(); };
+  function resetAll() {
+    data = {}; history = [];
+    document.getElementById("correctValue").value = "";
+    document.getElementById("commitFile").value = "";
+    document.getElementById("preview").style.display = "none";
+    applyLang();
+    show("home", false);
+  }
+
+  // ===== START =====
+  if (user) document.getElementById("name").value = [user.first_name, user.last_name].filter(Boolean).join(" ");
+  applyLang();
 </script>
 </body>
 </html>
