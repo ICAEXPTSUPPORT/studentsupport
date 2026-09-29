@@ -142,7 +142,8 @@
   .kv dt { color: var(--hint); }
   .kv dd { margin: 0; word-break: break-word; }
   .photo-box img { width: 100%; border-radius: 12px; margin-top: 10px; border: 1px solid var(--line); }
-  .toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: var(--gold-grad); color: #1a1718; font-weight: 700; padding: 10px 18px; border-radius: 12px; z-index: 50; box-shadow: 0 8px 24px rgba(0,0,0,.4); display: none; white-space: nowrap; max-width: 92vw; overflow: hidden; text-overflow: ellipsis; }
+  .toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: var(--gold-grad); color: #1a1718; font-weight: 700; padding: 10px 18px; border-radius: 12px; z-index: 50; box-shadow: 0 8px 24px rgba(0,0,0,.4); display: none; width: max-content; max-width: 92vw; text-align: center; }
+  .toast.bad { background: #5a1f1c; color: #ffd9d4; border: 1px solid var(--danger); }
 
   /* =====================================================================
      SEASONS — clipart + motion (changes automatically by date)
@@ -306,7 +307,7 @@
   // =====================================================================
   const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxgskH9wnHKxEJeFQ4JT64IaSlDT0ZyV706rDu5zo4suRI5V9HiLN6iq-yDsbK-xCVp1A/exec"; // Google Sheet link goes here in the final step
   const LOGO = document.querySelector(".topbar img").src;
-  const SERVER_MIN = 7;   // this app needs script version 7 or newer
+  const SERVER_MIN = 8;   // this app needs script version 8 or newer
 
   // One way to talk to the script. Refuses replies from an old script version.
   async function api(body) {
@@ -410,7 +411,7 @@
       k_semester: "Semester", k_level: "Level", k_field: "Field", k_details: "Problem", k_returned: "Returned for correction",
       k_place: "Consulate / Issued at", k_note: "Student's note", k_assigned: "Assigned to",
       show_photo: "📷 Show commitment photo", answer_title: "Your answer", status_label: "Status", reply_ph: "Write your answer to the student…",
-      send_answer: "Send answer", sent_ok: "Sent ✓ — student notified", session_out: "Please log in again.",
+      send_answer: "Send answer", sent_ok: "Sent ✓ — student notified", saved_not_notified: "Saved ✓ but student NOT notified:", session_out: "Please log in again.",
     },
     ar: {
       lang: "English", title: "دعم الطلاب",
@@ -489,7 +490,7 @@
       k_semester: "الفصل", k_level: "المرحلة", k_field: "التخصص", k_details: "المشكلة", k_returned: "تاريخ الإعادة للتصحيح",
       k_place: "القنصلية / مكان الإصدار", k_note: "ملاحظة الطالب", k_assigned: "المسؤول",
       show_photo: "📷 عرض صورة التعهد", answer_title: "ردّك", status_label: "الحالة", reply_ph: "اكتب ردّك للطالب…",
-      send_answer: "إرسال الرد", sent_ok: "تم الإرسال ✓ — تم إبلاغ الطالب", session_out: "يرجى تسجيل الدخول مرة أخرى.",
+      send_answer: "إرسال الرد", sent_ok: "تم الإرسال ✓ — تم إبلاغ الطالب", saved_not_notified: "تم الحفظ ✓ لكن لم يتم إبلاغ الطالب:", session_out: "يرجى تسجيل الدخول مرة أخرى.",
     }
   };
 
@@ -890,6 +891,18 @@
     return "T" + date + "-" + Math.floor(1000 + Math.random() * 9000);
   }
 
+  // Ask the student (once) to allow the bot to message them — otherwise replies can't reach them
+  function askWriteAccess() {
+    return new Promise(resolve => {
+      try {
+        if (!tg || !user || user.allows_write_to_pm || !tg.isVersionAtLeast || !tg.isVersionAtLeast("6.9") || !tg.requestWriteAccess) return resolve();
+        let done = false; const finish = () => { if (!done) { done = true; resolve(); } };
+        tg.requestWriteAccess(ok => { if (ok) user.allows_write_to_pm = true; finish(); });
+        setTimeout(finish, 20000);
+      } catch (e) { resolve(); }
+    });
+  }
+
   async function submitInfo(id) {
     const n = FLOW[id];
     for (const f of n.fields) {
@@ -919,6 +932,7 @@
 
     const btn = document.getElementById("sendBtn");
     btn.disabled = true; btn.textContent = t("sending");
+    await askWriteAccess();
     try {
       // 2) real check on the server (Google Sheet) — covers every student
       if (SCRIPT_URL) {
@@ -1152,9 +1166,9 @@
   const STAFF_KEY = "ica_staff";
   let staff = { token: "", name: "", sections: "", items: [], filter: "Waiting", openId: null, newStatus: null };
 
-  function toast(msg) {
-    const el = document.getElementById("toast"); el.textContent = msg; el.style.display = "block";
-    clearTimeout(toast._t); toast._t = setTimeout(() => el.style.display = "none", 2600);
+  function toast(msg, bad) {
+    const el = document.getElementById("toast"); el.textContent = msg; el.className = "toast" + (bad ? " bad" : ""); el.style.display = "block";
+    clearTimeout(toast._t); toast._t = setTimeout(() => el.style.display = "none", bad ? 6000 : 2600);
   }
   function saveStaff() { try { localStorage.setItem(STAFF_KEY, JSON.stringify({ token: staff.token, name: staff.name, sections: staff.sections })); } catch (e) {} }
   function loadStaffSaved() { try { Object.assign(staff, JSON.parse(localStorage.getItem(STAFF_KEY)) || {}); } catch (e) {} }
@@ -1302,7 +1316,7 @@
       if (!out.ok) { btn.disabled = false; btn.textContent = t("send_answer"); return out.error === "session" ? sessionOut() : toast(out.error); }
       const i = staff.items.find(x => x.id === staff.openId); i.status = staff.newStatus; i.reply = reply;
       if (tg && tg.HapticFeedback) tg.HapticFeedback.notificationOccurred("success");
-      toast(t("sent_ok"));
+      if (out.notified) toast(t("sent_ok")); else toast(t("saved_not_notified") + " " + out.reason, true);
       showStaffList(); loadStaff();
     } catch (e) { btn.disabled = false; btn.textContent = t("send_answer"); toast(errText(e)); }
   }
@@ -1310,6 +1324,7 @@
   applySeason();
   applyLang();
   if (new URLSearchParams(location.search).get("staff") === "1") openStaff();
+  if (new URLSearchParams(location.search).get("view") === "requests") openRequests();
   ["stUser", "stPass"].forEach(id => document.getElementById(id).addEventListener("keydown", e => { if (e.key === "Enter") staffLogin(); }));
 </script>
 </body>
